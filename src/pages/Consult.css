@@ -1,0 +1,370 @@
+.consult-page {
+  --consult-bg: #ebf4f8;
+  --consult-surface: #f8fdff;
+  --consult-surface-2: #fff;
+  --consult-text: #1c2a33;
+  --consult-muted: #58707f;
+  --consult-primary: var(--primary, #0f8b8d);
+  --consult-primary-strong: var(--primary-strong, #0a6b6d);
+  --consult-accent: var(--accent, #f18f6b);
+  --consult-border: #d3e2ea;
+  --consult-shadow: 0 24px 44px rgba(28, 42, 51, 0.13);
+  min-height: 100vh;
+  color: var(--consult-text);
+  background:
+    radial-gradient(circle at 5% 0%, rgba(15, 139, 141, 0.26), transparent 33%),
+    radial-gradient(circle at 93% 15%, rgba(241, 143, 107, 0.22), transparent 35%),
+    linear-gradient(160deg, #f7fcff 0%, var(--consult-bg) 58%, #e3eef4 100%);
+}
+
+.consult-hero,
+.consult-layout {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.consult-hero {
+  padding-top: 54px;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.consult-hero-copy,
+.consult-hero-panel,
+.consult-card {
+  border: 1px solid var(--consult-border);
+  border-radius: 22px;
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.95), rgba(255, 248, 237, 0.94));
+  box-shadow: var(--consult-shadow);
+}
+
+.consult-hero-copy {
+  padding: 30px;
+}
+
+.consult-kicker {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 800;
+  color: var(--consult-primary);
+  font-size: 0.8rem;
+}
+
+.consult-hero-copy h1 {
+  margin: 12px 0 16px;
+  font-size: clamp(2rem, 3.7vw, 3.3rem);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.consult-hero-copy > p {
+  margin: 0;
+  color: var(--consult-muted);
+  font-size: 1.05rem;
+  line-height: 1.72;
+}
+
+.consult-hero-actions {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.consult-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 12px 18px;
+  text-decoration: none;
+  font-weight: 700;
+  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.consult-btn:hover {
+  transform: translateY(-1px);
+}
+
+.consult-btn-primary {
+  background: linear-gradient(140deg, var(--consult-primary), var(--consult-primary-strong));
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(110, 63, 21, 0.3);
+}
+
+.consult-btn-secondary {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--consult-primary-strong);
+  border-color: #d4b48f;
+}
+
+.consult-hero-panel {
+  padding: 24px;
+  display: grid;
+  gap: 18px;
+}
+
+.consult-panel-title {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.consult-service-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.consult-chip {
+  border-radius: 999px;
+  border: 1px solid #c3dde8;
+  background: #fff;
+  padding: 6px 11px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #1f6f80;
+}
+
+.consult-metrics {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.consult-metrics > div {
+  border-radius: 14px;
+  border: 1px solid #cce1eb;
+  background: linear-gradient(180deg, #fff, #f2fafe);
+  padding: 12px;
+}
+
+.consult-metrics strong {
+  display: block;
+  font-size: 1.16rem;
+  color: #0c5e6c;
+}
+
+.consult-metrics span {
+  color: var(--consult-muted);
+  font-size: 0.86rem;
+}
+
+.consult-layout {
+  padding-top: 10px;
+  padding-bottom: 54px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1.2fr 0.8fr;
+}
+
+.consult-card {
+  padding: 24px;
+  background: linear-gradient(170deg, var(--consult-surface-2), var(--consult-surface));
+}
+
+.consult-form-card h2,
+.consult-info-card h2,
+.consult-process-card h3 {
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+.consult-muted {
+  margin: 10px 0 20px;
+  color: var(--consult-muted);
+  line-height: 1.7;
+}
+
+.consult-form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.consult-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.91rem;
+  color: #355466;
+}
+
+.consult-full-width {
+  grid-column: 1 / -1;
+}
+
+.consult-input {
+  width: 100%;
+  border: 1px solid #c8dfea;
+  border-radius: 11px;
+  background: #fbfeff;
+  color: var(--consult-text);
+  padding: 12px 13px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 170ms ease, box-shadow 170ms ease;
+}
+
+.consult-input:focus {
+  border-color: #1f8f91;
+  box-shadow: 0 0 0 3px rgba(15, 139, 141, 0.2);
+}
+
+.consult-textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.consult-submit-wrap {
+  display: grid;
+  gap: 10px;
+}
+
+.consult-submit-wrap .consult-btn {
+  width: max-content;
+}
+
+.consult-success,
+.consult-error {
+  margin: 0;
+  font-weight: 600;
+}
+
+.consult-success {
+  color: #196f3d;
+}
+
+.consult-error {
+  color: #b42318;
+}
+
+.consult-side-stack {
+  display: grid;
+  gap: 18px;
+  align-self: start;
+  position: sticky;
+  top: 90px;
+}
+
+.consult-info-card ul {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: #446170;
+  line-height: 1.7;
+}
+
+.consult-steps {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.consult-step-item {
+  border: 1px solid #cfe3ed;
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 30px 1fr;
+  background: #fff;
+}
+
+.consult-step-item > span {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #dbedf6;
+  color: #11596a;
+  font-weight: 700;
+}
+
+.consult-step-item p {
+  margin: 2px 0 5px;
+  font-weight: 700;
+}
+
+.consult-step-item small {
+  color: var(--consult-muted);
+  font-size: 0.86rem;
+}
+
+.consult-cta-card {
+  background:
+    radial-gradient(circle at 90% 15%, rgba(255, 255, 255, 0.42), transparent 38%),
+    linear-gradient(140deg, var(--consult-primary), var(--consult-primary-strong));
+  border-color: #0a6b6d;
+  color: #fff;
+}
+
+.consult-cta-card p {
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+.consult-cta-card .consult-btn-primary {
+  background: #fff;
+  color: var(--consult-primary-strong);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.consult-fade-up {
+  animation: consultFadeUp 620ms ease both;
+}
+
+.consult-delay-1 {
+  animation-delay: 120ms;
+}
+
+@keyframes consultFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 980px) {
+  .consult-hero,
+  .consult-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .consult-side-stack {
+    position: static;
+  }
+}
+
+@media (max-width: 560px) {
+  .consult-hero-copy,
+  .consult-hero-panel,
+  .consult-card {
+    border-radius: 16px;
+  }
+
+  .consult-hero {
+    padding-top: 34px;
+  }
+
+  .consult-btn,
+  .consult-submit-wrap .consult-btn {
+    width: 100%;
+  }
+
+  .consult-metrics {
+    grid-template-columns: 1fr;
+  }
+}

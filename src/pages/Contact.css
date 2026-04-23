@@ -1,0 +1,133 @@
+.contact-page {
+  color: var(--text);
+}
+
+.contact-hero {
+  padding-top: 3.6rem;
+  padding-bottom: 2.2rem;
+  background:
+    radial-gradient(circle at 8% 18%, rgba(15, 139, 141, 0.18), transparent 36%),
+    radial-gradient(circle at 88% 16%, rgba(241, 143, 107, 0.2), transparent 34%),
+    linear-gradient(145deg, #f7fcff 0%, #e8f3f7 100%);
+  border-bottom: 1px solid var(--border);
+}
+
+.contact-main {
+  padding-top: 2rem;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 1rem;
+}
+
+.contact-card {
+  background: linear-gradient(170deg, #fff, #f6fbfe);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.3rem;
+}
+
+.contact-card h2,
+.contact-card h3 {
+  margin: 0;
+}
+
+.contact-muted {
+  margin: 0.6rem 0 1rem;
+  color: var(--muted);
+}
+
+.contact-form {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.contact-form label {
+  display: block;
+  font-size: 0.9rem;
+  color: #355466;
+}
+
+.contact-form input,
+.contact-form textarea,
+.contact-form select {
+  width: 100%;
+  margin-top: 0.32rem;
+  padding: 0.68rem 0.74rem;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #fbfeff;
+  color: var(--text);
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus,
+.contact-form select:focus {
+  outline: none;
+  border-color: #1f8f91;
+  box-shadow: 0 0 0 3px rgba(15, 139, 141, 0.18);
+}
+
+.contact-full {
+  grid-column: 1 / -1;
+}
+
+.contact-actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.contact-actions .btn {
+  width: max-content;
+}
+
+.contact-success {
+  margin: 0;
+  color: var(--success);
+  font-weight: 700;
+}
+
+.contact-side {
+  display: grid;
+  gap: 1rem;
+  align-self: start;
+}
+
+.contact-side p {
+  margin: 0.2rem 0;
+  color: var(--text);
+}
+
+.contact-side ul {
+  margin: 0.8rem 0 0;
+  padding-left: 1rem;
+  color: var(--text);
+}
+
+.contact-side li {
+  margin-bottom: 0.8rem;
+}
+
+.contact-side li p {
+  margin: 0.15rem 0;
+}
+
+@media (max-width: 900px) {
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .contact-form {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-actions .btn {
+    width: 100%;
+  }
+}

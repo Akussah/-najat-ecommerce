@@ -1,0 +1,61 @@
+{
+    "users":  [
+
+              ],
+    "products":  [
+                     {
+                         "id":  1,
+                         "name":  "Classic Pearl Bead Bag",
+                         "price":  95,
+                         "description":  "Hand-woven white pearl beads with evening-ready shape.",
+                         "stock":  "In stock",
+                         "image":  "pearl"
+                     },
+                     {
+                         "id":  2,
+                         "name":  "Gold Chain Bead Bag",
+                         "price":  120,
+                         "description":  "Gold-tone chain and bead body with inner satin lining.",
+                         "stock":  "In stock",
+                         "image":  "gold"
+                     },
+                     {
+                         "id":  3,
+                         "name":  "Mini Bridal Bead Bag",
+                         "price":  80,
+                         "description":  "Compact bridal style for events and ceremonies.",
+                         "stock":  "Low stock",
+                         "image":  "bridal"
+                     },
+                     {
+                         "id":  4,
+                         "name":  "Crystal Bead Tote",
+                         "price":  140,
+                         "description":  "Roomy tote made with crystal-cut glass beads.",
+                         "stock":  "In stock",
+                         "image":  "crystal"
+                     },
+                     {
+                         "id":  5,
+                         "name":  "Black Night Bead Bag",
+                         "price":  110,
+                         "description":  "Matte black bead pattern for formal outfits.",
+                         "stock":  "In stock",
+                         "image":  "black"
+                     },
+                     {
+                         "id":  6,
+                         "name":  "Color Pop Festival Bag",
+                         "price":  75,
+                         "description":  "Bright mixed beads with reinforced hand strap.",
+                         "stock":  "In stock",
+                         "image":  "color"
+                     }
+                 ],
+    "orders":  [
+
+               ],
+    "consultRequests":  [
+
+                        ]
+}

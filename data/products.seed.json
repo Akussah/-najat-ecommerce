@@ -1,0 +1,32 @@
+[
+  {
+    "id": "classic-pearl-bead-bag",
+    "name": "Classic Pearl Bead Bag",
+    "description": "Hand-woven pearl beads with evening-ready shape.",
+    "price": 95,
+    "stock": "In stock",
+    "image": "pearl",
+    "bio": "A timeless design crafted for evening occasions with meticulous hand-beading.",
+    "imageFile": "classic-pearl.jpg"
+  },
+  {
+    "id": "gold-chain-bead-bag",
+    "name": "Gold Chain Bead Bag",
+    "description": "Gold-tone chain and bead body with satin lining.",
+    "price": 120,
+    "stock": "In stock",
+    "image": "gold",
+    "bio": "A luxe evening bag where polished beads meet lasting structure.",
+    "imageFile": "gold-chain.jpg"
+  },
+  {
+    "id": "mini-bridal-bead-bag",
+    "name": "Mini Bridal Bead Bag",
+    "description": "Compact bridal style for events and ceremonies.",
+    "price": 80,
+    "stock": "Low stock",
+    "image": "bridal",
+    "bio": "A perfect escort piece for modern brides and reflection of artisan craft.",
+    "imageFile": "mini-bridal.jpg"
+  }
+]

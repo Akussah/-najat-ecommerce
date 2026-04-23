@@ -1,0 +1,22 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Production
+/dist
+/build
+
+# Environment Variables - IMPORTANT!
+.env
+.env.*.local
+!/.env.example
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# SQLite Database
+/backend/data/app.db
+/backend/data/app.db-journal
