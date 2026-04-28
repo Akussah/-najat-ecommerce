@@ -10,7 +10,9 @@ const __dirname = path.dirname(__filename);
 const dataDir = process.env.DATABASE_DIR || path.join(__dirname, 'data');
 const dbPath = path.join(dataDir, 'app.db');
 
-mkdirSync(dataDir, { recursive: true });
+if (!process.env.DATABASE_DIR) {
+  mkdirSync(dataDir, { recursive: true });
+}
 const db = new Database(dbPath);
 
 db.exec(`
