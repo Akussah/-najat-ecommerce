@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdirSync, readFileSync, existsSync } from 'node:fs';
+import { hashPassword } from './lib/security.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -62,6 +63,29 @@ db.exec(`
   );
 `);
 
+const seedAdmin = () => {
+  try {
+    const countRow = db.prepare('SELECT COUNT(*) AS count FROM users').get();
+    if (countRow && countRow.count > 0) return;
+
+    const email = process.env.ADMIN_EMAIL || 'admin@admin.com';
+    const password = process.env.ADMIN_PASSWORD || 'Admin1234';
+    const name = process.env.ADMIN_NAME || 'Admin';
+    const createdAt = new Date().toISOString();
+    const passwordHash = hashPassword(password);
+
+    db.prepare(
+      'INSERT INTO users (name, email, password_hash, created_at, is_admin) VALUES (?, ?, ?, ?, ?)' 
+    ).run(name, email.toLowerCase(), passwordHash, createdAt, 1);
+
+    // eslint-disable-next-line no-console
+    console.log(`Seeded default admin user: ${email}`);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to seed admin user:', error);
+  }
+};
+
 const seedProducts = () => {
   try {
     const countRow = db.prepare('SELECT COUNT(*) AS count FROM products').get();
@@ -83,7 +107,7 @@ const seedProducts = () => {
           Number(item.price || 0),
           item.description || '',
           item.stock || '',
-          item.image || '',
+          item.imageFile ? `/${item.imageFile}` : item.image || '',
           item.bio || ''
         );
       }
@@ -96,6 +120,7 @@ const seedProducts = () => {
   }
 };
 
+seedAdmin();
 seedProducts();
 
 try { db.prepare('ALTER TABLE products ADD COLUMN bio TEXT').run(); } catch (e) {}
