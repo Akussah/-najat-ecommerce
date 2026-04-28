@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, existsSync } from 'node:fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,6 +61,42 @@ db.exec(`
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
 `);
+
+const seedProducts = () => {
+  try {
+    const countRow = db.prepare('SELECT COUNT(*) AS count FROM products').get();
+    if (countRow && countRow.count > 0) return;
+
+    const seedPath = path.join(__dirname, '../data/products.seed.json');
+    if (!existsSync(seedPath)) return;
+
+    const products = JSON.parse(readFileSync(seedPath, 'utf-8'));
+    if (!Array.isArray(products) || products.length === 0) return;
+
+    const insert = db.prepare(
+      'INSERT INTO products (name, price, description, stock, image, bio) VALUES (?, ?, ?, ?, ?, ?)'
+    );
+    const insertMany = db.transaction((items) => {
+      for (const item of items) {
+        insert.run(
+          item.name || '',
+          Number(item.price || 0),
+          item.description || '',
+          item.stock || '',
+          item.image || '',
+          item.bio || ''
+        );
+      }
+    });
+
+    insertMany(products);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to seed products:', error);
+  }
+};
+
+seedProducts();
 
 try { db.prepare('ALTER TABLE products ADD COLUMN bio TEXT').run(); } catch (e) {}
 try { db.prepare('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0').run(); } catch (e) {}
