@@ -79,18 +79,27 @@ export const initDb = async () => {
 
 const seedAdmin = async () => {
   try {
-    const countRow = await pool.query('SELECT COUNT(*) AS count FROM users');
-    if (countRow.rows[0].count > 0) return;
-
-    const email = process.env.ADMIN_EMAIL || 'admin@admin.com';
+    const email = (process.env.ADMIN_EMAIL || 'admin@admin.com').toLowerCase();
     const password = process.env.ADMIN_PASSWORD || 'Admin1234';
     const name = process.env.ADMIN_NAME || 'Admin';
     const createdAt = new Date().toISOString();
     const passwordHash = hashPassword(password);
 
+    const existingResult = await pool.query('SELECT id, is_admin FROM users WHERE email = $1', [email]);
+    const existingUser = existingResult.rows[0];
+
+    if (existingUser) {
+      if (!existingUser.is_admin) {
+        await pool.query('UPDATE users SET is_admin = 1 WHERE id = $1', [existingUser.id]);
+        // eslint-disable-next-line no-console
+        console.log(`Updated existing user to admin: ${email}`);
+      }
+      return;
+    }
+
     await pool.query(
-      'INSERT INTO users (name, email, password_hash, created_at, is_admin) VALUES ($1, $2, $3, $4, $5)', 
-      [name, email.toLowerCase(), passwordHash, createdAt, 1]
+      'INSERT INTO users (name, email, password_hash, created_at, is_admin) VALUES ($1, $2, $3, $4, $5)',
+      [name, email, passwordHash, createdAt, 1]
     );
 
     // eslint-disable-next-line no-console
