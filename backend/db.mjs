@@ -10,9 +10,14 @@ const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is not configured. Set it in .env or environment variables.');
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' || String(process.env.DATABASE_URL || '').includes('render.com')
+  connectionString: databaseUrl,
+  ssl: process.env.NODE_ENV === 'production' || String(databaseUrl).includes('render.com')
     ? { rejectUnauthorized: false }
     : undefined,
 });
