@@ -9,6 +9,7 @@ const { Pool } = pg;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const publicDir = path.join(__dirname, '../public');
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -80,19 +81,40 @@ export const initDb = async () => {
 const seedAdmin = async () => {
   try {
     const email = (process.env.ADMIN_EMAIL || 'admin@admin.com').toLowerCase();
-    const password = process.env.ADMIN_PASSWORD || 'Admin1234';
+    const envPassword = process.env.ADMIN_PASSWORD;
+    const password = envPassword || 'Admin1234';
     const name = process.env.ADMIN_NAME || 'Admin';
     const createdAt = new Date().toISOString();
     const passwordHash = hashPassword(password);
+    const shouldUpdatePassword = envPassword !== undefined;
+    const shouldUpdateName = process.env.ADMIN_NAME !== undefined;
 
     const existingResult = await pool.query('SELECT id, is_admin FROM users WHERE email = $1', [email]);
     const existingUser = existingResult.rows[0];
 
     if (existingUser) {
+      const updates = [];
+      const values = [];
+
       if (!existingUser.is_admin) {
-        await pool.query('UPDATE users SET is_admin = 1 WHERE id = $1', [existingUser.id]);
+        updates.push('is_admin = 1');
+      }
+      if (shouldUpdatePassword) {
+        values.push(passwordHash);
+        updates.push(`password_hash = $${values.length}`);
+      }
+      if (shouldUpdateName) {
+        values.push(name);
+        updates.push(`name = $${values.length}`);
+      }
+
+      if (updates.length > 0) {
+        await pool.query(
+          `UPDATE users SET ${updates.join(', ')} WHERE id = $${values.length + 1}`,
+          [...values, existingUser.id]
+        );
         // eslint-disable-next-line no-console
-        console.log(`Updated existing user to admin: ${email}`);
+        console.log(`Updated existing admin user: ${email}`);
       }
       return;
     }
@@ -108,6 +130,21 @@ const seedAdmin = async () => {
     // eslint-disable-next-line no-console
     console.error('Failed to seed admin user:', error);
   }
+};
+
+const resolveSeedImagePath = (item) => {
+  if (item.imageFile) {
+    const candidate = path.join(publicDir, item.imageFile);
+    if (existsSync(candidate)) {
+      return `/${item.imageFile}`;
+    }
+  }
+
+  if (typeof item.image === 'string' && (item.image.startsWith('/') || item.image.startsWith('http') || item.image.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
+    return item.image;
+  }
+
+  return '';
 };
 
 const seedProducts = async () => {
@@ -132,7 +169,7 @@ const seedProducts = async () => {
             Number(item.price || 0),
             item.description || '',
             item.stock || '',
-            item.imageFile ? `/${item.imageFile}` : item.image || '',
+            resolveSeedImagePath(item),
             item.bio || ''
           ]
         );
