@@ -1,75 +1,81 @@
-import Database from 'better-sqlite3';
+import 'dotenv/config';
+import pg from 'pg';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mkdirSync, readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { hashPassword } from './lib/security.mjs';
+
+const { Pool } = pg;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Use an environment variable for production (Render Persistent Disk), fallback to local for dev
-const dataDir = process.env.DATABASE_DIR || path.join(__dirname, 'data');
-const dbPath = path.join(dataDir, 'app.db');
 
-if (!process.env.DATABASE_DIR) {
-  mkdirSync(dataDir, { recursive: true });
-}
-const db = new Database(dbPath);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' || String(process.env.DATABASE_URL || '').includes('render.com')
+    ? { rejectUnauthorized: false }
+    : undefined,
+});
 
-db.exec(`
-  PRAGMA foreign_keys = ON;
+export const initDb = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      is_admin INTEGER DEFAULT 0
+    );
 
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    is_admin INTEGER DEFAULT 0
-  );
+    CREATE TABLE IF NOT EXISTS products (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      price REAL NOT NULL,
+      description TEXT NOT NULL,
+      stock TEXT NOT NULL,
+      image TEXT,
+      bio TEXT
+    );
 
-  CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    price REAL NOT NULL,
-    description TEXT NOT NULL,
-    stock TEXT NOT NULL,
-    image TEXT,
-    bio TEXT
-  );
+    CREATE TABLE IF NOT EXISTS orders (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      user_email TEXT NOT NULL,
+      items_json TEXT NOT NULL,
+      total REAL NOT NULL,
+      address TEXT NOT NULL,
+      payment_method TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
 
-  CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    user_email TEXT NOT NULL,
-    items_json TEXT NOT NULL,
-    total REAL NOT NULL,
-    address TEXT NOT NULL,
-    payment_method TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY(user_id) REFERENCES users(id)
-  );
+    CREATE TABLE IF NOT EXISTS consult_requests (
+      id SERIAL PRIMARY KEY,
+      payload_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
 
-  CREATE TABLE IF NOT EXISTS consult_requests (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    payload_json TEXT NOT NULL,
-    created_at TEXT NOT NULL
-  );
+    CREATE TABLE IF NOT EXISTS sessions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      token_hash TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      revoked_at TEXT
+    );
+  `);
 
-  CREATE TABLE IF NOT EXISTS sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    token_hash TEXT NOT NULL UNIQUE,
-    created_at TEXT NOT NULL,
-    expires_at TEXT NOT NULL,
-    revoked_at TEXT,
-    FOREIGN KEY(user_id) REFERENCES users(id)
-  );
-`);
+  await seedAdmin();
+  await seedProducts();
 
-const seedAdmin = () => {
+  try { await pool.query('ALTER TABLE products ADD COLUMN bio TEXT'); } catch (e) {}
+  try { await pool.query('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0'); } catch (e) {}
+};
+
+const seedAdmin = async () => {
   try {
-    const countRow = db.prepare('SELECT COUNT(*) AS count FROM users').get();
-    if (countRow && countRow.count > 0) return;
+    const countRow = await pool.query('SELECT COUNT(*) AS count FROM users');
+    if (countRow.rows[0].count > 0) return;
 
     const email = process.env.ADMIN_EMAIL || 'admin@admin.com';
     const password = process.env.ADMIN_PASSWORD || 'Admin1234';
@@ -77,9 +83,10 @@ const seedAdmin = () => {
     const createdAt = new Date().toISOString();
     const passwordHash = hashPassword(password);
 
-    db.prepare(
-      'INSERT INTO users (name, email, password_hash, created_at, is_admin) VALUES (?, ?, ?, ?, ?)' 
-    ).run(name, email.toLowerCase(), passwordHash, createdAt, 1);
+    await pool.query(
+      'INSERT INTO users (name, email, password_hash, created_at, is_admin) VALUES ($1, $2, $3, $4, $5)', 
+      [name, email.toLowerCase(), passwordHash, createdAt, 1]
+    );
 
     // eslint-disable-next-line no-console
     console.log(`Seeded default admin user: ${email}`);
@@ -89,10 +96,10 @@ const seedAdmin = () => {
   }
 };
 
-const seedProducts = () => {
+const seedProducts = async () => {
   try {
-    const countRow = db.prepare('SELECT COUNT(*) AS count FROM products').get();
-    if (countRow && countRow.count > 0) return;
+    const countRow = await pool.query('SELECT COUNT(*) AS count FROM products');
+    if (countRow.rows[0].count > 0) return;
 
     const seedPath = path.join(__dirname, '../data/products.seed.json');
     if (!existsSync(seedPath)) return;
@@ -100,34 +107,33 @@ const seedProducts = () => {
     const products = JSON.parse(readFileSync(seedPath, 'utf-8'));
     if (!Array.isArray(products) || products.length === 0) return;
 
-    const insert = db.prepare(
-      'INSERT INTO products (name, price, description, stock, image, bio) VALUES (?, ?, ?, ?, ?, ?)'
-    );
-    const insertMany = db.transaction((items) => {
-      for (const item of items) {
-        insert.run(
-          item.name || '',
-          Number(item.price || 0),
-          item.description || '',
-          item.stock || '',
-          item.imageFile ? `/${item.imageFile}` : item.image || '',
-          item.bio || ''
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const item of products) {
+        await client.query(
+          'INSERT INTO products (name, price, description, stock, image, bio) VALUES ($1, $2, $3, $4, $5, $6)',
+          [
+            item.name || '',
+            Number(item.price || 0),
+            item.description || '',
+            item.stock || '',
+            item.imageFile ? `/${item.imageFile}` : item.image || '',
+            item.bio || ''
+          ]
         );
       }
-    });
-
-    insertMany(products);
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to seed products:', error);
   }
 };
 
-seedAdmin();
-seedProducts();
-
-try { db.prepare('ALTER TABLE products ADD COLUMN bio TEXT').run(); } catch (e) {}
-try { db.prepare('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0').run(); } catch (e) {}
-
-export { dbPath };
-export default db;
+export default pool;

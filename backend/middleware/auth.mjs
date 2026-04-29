@@ -1,7 +1,7 @@
 import { sendJson } from '../lib/http.mjs';
 
-export const requireAuth = (authService) => (req, res) => {
-  const user = authService.getUserByToken(req);
+export const requireAuth = (authService) => async (req, res) => {
+  const user = await authService.getUserByToken(req);
   if (!user) {
     sendJson(res, 401, { ok: false, message: 'Unauthorized. Please sign in.' });
     return false;

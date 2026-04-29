@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Stripe from 'stripe';
-import db, { dbPath } from './db.mjs';
+import db, { initDb } from './db.mjs';
 import { config } from './config.mjs';
 import { createAuthService } from './services/auth.mjs';
 import { createEmailService } from './services/email.mjs';
@@ -64,7 +64,12 @@ const handler = async (req, res) => {
   }
 };
 
-createServer(handler).listen(config.port, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Backend API running on http://localhost:${config.port} (SQLite: ${dbPath})`);
+initDb().then(() => {
+  createServer(handler).listen(config.port, () => {
+    // eslint-disable-next-line no-console
+    console.log(`Backend API running on http://localhost:${config.port} (PostgreSQL connected)`);
+  });
+}).catch((err) => {
+  console.error('Failed to initialize database', err);
+  process.exit(1);
 });

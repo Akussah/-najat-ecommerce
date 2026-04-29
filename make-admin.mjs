@@ -1,10 +1,7 @@
-import { existsSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import Database from 'better-sqlite3';
+import dotenv from 'dotenv';
+import pg from 'pg';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+dotenv.config();
 
 const args = process.argv.slice(2);
 
@@ -30,28 +27,29 @@ if (!email) {
   process.exit(1);
 }
 
-const dbPath = path.join(__dirname, 'backend', 'data', 'app.db');
-
-if (!existsSync(dbPath)) {
-  console.error(
-    `Database not found at ${dbPath}. Start the API once (npm run api) to initialize it.`
-  );
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  console.error('DATABASE_URL is not configured. Set it in .env or the environment.');
   process.exit(1);
 }
 
-const db = new Database(dbPath);
+const { Pool } = pg;
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined
+});
 
+const client = await pool.connect();
 try {
-  // Safely ensure the is_admin column exists before querying
-  try {
-    db.prepare('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0').run();
-  } catch (error) {
-    if (!/duplicate column/i.test(String(error.message || ''))) {
-      // ignore other errors
-    }
-  }
+  await client.query('BEGIN');
+  await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin INTEGER DEFAULT 0');
 
-  const user = db.prepare('SELECT id, name, email, is_admin FROM users WHERE email = ?').get(email);
+  const { rows } = await client.query(
+    'SELECT id, name, email, is_admin FROM users WHERE email = $1',
+    [email]
+  );
+
+  const user = rows[0];
   if (!user) {
     console.error(`No user found for ${email}. Sign up first, then re-run.`);
     process.exit(1);
@@ -59,11 +57,18 @@ try {
 
   if (user.is_admin) {
     console.log(`${email} is already an admin.`);
+    await client.query('ROLLBACK');
     process.exit(0);
   }
 
-  db.prepare('UPDATE users SET is_admin = 1 WHERE id = ?').run(user.id);
+  await client.query('UPDATE users SET is_admin = 1 WHERE id = $1', [user.id]);
+  await client.query('COMMIT');
   console.log(`Admin enabled for ${email}.`);
+} catch (error) {
+  await client.query('ROLLBACK');
+  console.error('Failed to enable admin:', error.message || error);
+  process.exit(1);
 } finally {
-  db.close();
+  client.release();
+  await pool.end();
 }
