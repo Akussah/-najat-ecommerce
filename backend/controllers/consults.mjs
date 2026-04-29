@@ -24,14 +24,15 @@ export const createConsultsController = ({ db, emailService }) => ({
     const service = data.service;
 
     const createdAt = new Date().toISOString();
-    const payload = JSON.stringify({ ...body, name, email, service });
-    const result = db
-      .prepare('INSERT INTO consult_requests (payload_json, created_at) VALUES (?, ?)')
-      .run(payload, createdAt);
+    const insertResult = await db.query(
+      'INSERT INTO consult_requests (payload_json, created_at) VALUES ($1, $2) RETURNING id',
+      [payload, createdAt]
+    );
 
+    const requestId = insertResult.rows[0]?.id;
     sendJson(res, 201, {
       ok: true,
-      request: { id: Number(result.lastInsertRowid), ...body, name, email, service, createdAt }
+      request: { id: Number(requestId), ...body, name, email, service, createdAt }
     });
 
     const consultHtml = `

@@ -30,20 +30,22 @@ export const createAuthController = ({ db, authService }) => ({
       return;
     }
 
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
-    if (existing) {
+    const existingResult = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existingResult.rows.length > 0) {
       sendJson(res, 409, { ok: false, message: 'Email already exists.' });
       return;
     }
 
     const createdAt = new Date().toISOString();
     const passwordHash = hashPassword(password);
-    const result = db
-      .prepare('INSERT INTO users (name, email, password_hash, created_at) VALUES (?, ?, ?, ?)')
-      .run(name, email, passwordHash, createdAt);
+    const insertResult = await db.query(
+      'INSERT INTO users (name, email, password_hash, created_at) VALUES ($1, $2, $3, $4) RETURNING id',
+      [name, email, passwordHash, createdAt]
+    );
 
-    const user = { id: Number(result.lastInsertRowid), name, email, is_admin: 0 };
-    const token = authService.createSession(user.id);
+    const userId = insertResult.rows[0]?.id;
+    const user = { id: Number(userId), name, email, is_admin: 0 };
+    const token = await authService.createSession(user.id);
     sendJson(res, 201, { ok: true, user, token });
   },
 
@@ -64,13 +66,17 @@ export const createAuthController = ({ db, authService }) => ({
     const email = normalizeEmail(validation.data.email);
     const password = String(validation.data.password || '');
 
-    const user = db.prepare('SELECT id, name, email, password_hash, is_admin FROM users WHERE email = ?').get(email);
+    const userResult = await db.query(
+      'SELECT id, name, email, password_hash, is_admin FROM users WHERE email = $1',
+      [email]
+    );
+    const user = userResult.rows[0];
     if (!user || !verifyPassword(password, user.password_hash)) {
       sendJson(res, 401, { ok: false, message: 'Invalid email or password.' });
       return;
     }
 
-    const token = authService.createSession(user.id);
+    const token = await authService.createSession(user.id);
     sendJson(res, 200, {
       ok: true,
       user: { id: user.id, name: user.name, email: user.email, is_admin: user.is_admin },

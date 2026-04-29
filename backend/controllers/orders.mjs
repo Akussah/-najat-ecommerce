@@ -5,11 +5,11 @@ import { validateSchema } from '../validation/validate.mjs';
 const roundMoney = (value) => Math.round(value * 100) / 100;
 
 export const createOrdersController = ({ db, emailService, config }) => ({
-  list(req, res) {
-    const orders = db
-      .prepare('SELECT id, user_id, user_email, items_json, total, address, payment_method, created_at FROM orders ORDER BY id DESC')
-      .all();
-    sendJson(res, 200, { ok: true, orders });
+  async list(req, res) {
+    const result = await db.query(
+      'SELECT id, user_id, user_email, items_json, total, address, payment_method, created_at FROM orders ORDER BY id DESC'
+    );
+    sendJson(res, 200, { ok: true, orders: result.rows });
   },
 
   async create(req, res) {
@@ -38,13 +38,12 @@ export const createOrdersController = ({ db, emailService, config }) => ({
     }
 
     const createdAt = new Date().toISOString();
-    const result = db
-      .prepare(
-        'INSERT INTO orders (user_id, user_email, items_json, total, address, payment_method, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      )
-      .run(req.user.id, req.user.email, JSON.stringify(items), computedTotal, data.address, data.paymentMethod, createdAt);
+    const insertResult = await db.query(
+      'INSERT INTO orders (user_id, user_email, items_json, total, address, payment_method, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+      [req.user.id, req.user.email, JSON.stringify(items), computedTotal, data.address, data.paymentMethod, createdAt]
+    );
 
-    const orderId = Number(result.lastInsertRowid);
+    const orderId = Number(insertResult.rows[0]?.id);
     sendJson(res, 201, {
       ok: true,
       order: {

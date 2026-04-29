@@ -22,22 +22,22 @@ const parseId = (req) => {
 };
 
 export const createProductsController = ({ db }) => ({
-  list(req, res) {
-    const products = db
-      .prepare('SELECT id, name, price, description, stock, image, bio FROM products ORDER BY id')
-      .all();
-    sendJson(res, 200, { ok: true, products });
+  async list(req, res) {
+    const result = await db.query('SELECT id, name, price, description, stock, image, bio FROM products ORDER BY id');
+    sendJson(res, 200, { ok: true, products: result.rows });
   },
 
-  get(req, res) {
+  async get(req, res) {
     const id = parseId(req);
     if (!id) {
       sendJson(res, 400, { ok: false, message: 'Invalid product id.' });
       return;
     }
-    const product = db
-      .prepare('SELECT id, name, price, description, stock, image, bio FROM products WHERE id = ?')
-      .get(id);
+    const result = await db.query(
+      'SELECT id, name, price, description, stock, image, bio FROM products WHERE id = $1',
+      [id]
+    );
+    const product = result.rows[0];
     if (!product) {
       sendJson(res, 404, { ok: false, message: 'Product not found' });
       return;
@@ -73,14 +73,16 @@ export const createProductsController = ({ db }) => ({
       return;
     }
 
-    const result = db
-      .prepare('INSERT INTO products (name, price, description, stock, image, bio) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(data.name, data.price, data.description, data.stock, image, data.bio || '');
+    const insertResult = await db.query(
+      'INSERT INTO products (name, price, description, stock, image, bio) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+      [data.name, data.price, data.description, data.stock, image, data.bio || '']
+    );
 
+    const productId = insertResult.rows[0]?.id;
     sendJson(res, 201, {
       ok: true,
       product: {
-        id: Number(result.lastInsertRowid),
+        id: Number(productId),
         name: data.name,
         price: data.price,
         description: data.description,
@@ -98,9 +100,11 @@ export const createProductsController = ({ db }) => ({
       return;
     }
 
-    const current = db
-      .prepare('SELECT id, name, price, description, stock, image, bio FROM products WHERE id = ?')
-      .get(id);
+    const currentResult = await db.query(
+      'SELECT id, name, price, description, stock, image, bio FROM products WHERE id = $1',
+      [id]
+    );
+    const current = currentResult.rows[0];
     if (!current) {
       sendJson(res, 404, { ok: false, message: 'Product not found' });
       return;
@@ -136,20 +140,22 @@ export const createProductsController = ({ db }) => ({
       return;
     }
 
-    db.prepare('UPDATE products SET name = ?, price = ?, description = ?, stock = ?, image = ?, bio = ? WHERE id = ?')
-      .run(data.name, data.price, data.description, data.stock, image, data.bio || '', id);
+    await db.query(
+      'UPDATE products SET name = $1, price = $2, description = $3, stock = $4, image = $5, bio = $6 WHERE id = $7',
+      [data.name, data.price, data.description, data.stock, image, data.bio || '', id]
+    );
 
     sendJson(res, 200, { ok: true, message: 'Product updated successfully.' });
   },
 
-  remove(req, res) {
+  async remove(req, res) {
     const id = parseId(req);
     if (!id) {
       sendJson(res, 400, { ok: false, message: 'Invalid product id.' });
       return;
     }
 
-    db.prepare('DELETE FROM products WHERE id = ?').run(id);
+    await db.query('DELETE FROM products WHERE id = $1', [id]);
     sendJson(res, 200, { ok: true, message: 'Product deleted successfully.' });
   }
 });
