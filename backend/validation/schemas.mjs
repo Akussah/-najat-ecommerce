@@ -13,7 +13,8 @@ export const productSchema = z.object({
   description: z.string().trim().min(1, 'Description is required.'),
   stock: z.string().trim().min(1, 'Stock status is required.').default('In stock'),
   bio: z.string().trim().optional().default(''),
-  image: z.string().trim().optional().default('')
+  image: z.string().trim().optional().default(''),
+  colors: z.any().optional()
 });
 
 export const signupSchema = z.object({

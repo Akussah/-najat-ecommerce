@@ -37,7 +37,7 @@ export const parseMultipartBody = (req, { maxFileSize = 5 * 1024 * 1024, maxFiel
     }
 
     const fields = {};
-    let file = null;
+    const files = [];
     let fileTooLarge = false;
 
     const busboy = Busboy({
@@ -45,7 +45,7 @@ export const parseMultipartBody = (req, { maxFileSize = 5 * 1024 * 1024, maxFiel
       limits: {
         fileSize: maxFileSize,
         fieldSize: maxFieldSize,
-        files: 1,
+        files: 5,
         fields: 50
       }
     });
@@ -55,7 +55,7 @@ export const parseMultipartBody = (req, { maxFileSize = 5 * 1024 * 1024, maxFiel
     });
 
     busboy.on('file', (name, stream, info) => {
-      if (name !== 'image') {
+      if (name !== 'image' && name !== 'images' && !name.startsWith('image')) {
         stream.resume();
         return;
       }
@@ -67,11 +67,11 @@ export const parseMultipartBody = (req, { maxFileSize = 5 * 1024 * 1024, maxFiel
         fileTooLarge = true;
       });
       stream.on('end', () => {
-        file = {
+        files.push({
           buffer: Buffer.concat(chunks),
           filename: info.filename,
           mimeType: info.mimeType
-        };
+        });
       });
     });
 
@@ -81,7 +81,7 @@ export const parseMultipartBody = (req, { maxFileSize = 5 * 1024 * 1024, maxFiel
         reject(new Error('Image size exceeds 5MB limit.'));
         return;
       }
-      resolve({ fields, file });
+      resolve({ fields, files });
     });
 
     req.pipe(busboy);

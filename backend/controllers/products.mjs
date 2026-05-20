@@ -6,12 +6,12 @@ import { saveBase64Image, saveUploadedImage } from '../services/images.mjs';
 const readProductPayload = async (req) => {
   const contentType = String(req.headers['content-type'] || '');
   if (contentType.includes('multipart/form-data')) {
-    const { fields, file } = await parseMultipartBody(req);
-    return { payload: fields, file };
+    const { fields, files } = await parseMultipartBody(req);
+    return { payload: fields, files };
   }
 
   const body = await parseJsonBody(req);
-  return { payload: body, file: null };
+  return { payload: body, files: [] };
 };
 
 const parseId = (req) => {
@@ -23,7 +23,7 @@ const parseId = (req) => {
 
 export const createProductsController = ({ db }) => ({
   async list(req, res) {
-    const result = await db.query('SELECT id, name, price, description, stock, image, bio FROM products ORDER BY id');
+    const result = await db.query('SELECT id, name, price, description, stock, image, images, colors, bio FROM products ORDER BY id');
     sendJson(res, 200, { ok: true, products: result.rows });
   },
 
@@ -34,7 +34,7 @@ export const createProductsController = ({ db }) => ({
       return;
     }
     const result = await db.query(
-      'SELECT id, name, price, description, stock, image, bio FROM products WHERE id = $1',
+      'SELECT id, name, price, description, stock, image, images, colors, bio FROM products WHERE id = $1',
       [id]
     );
     const product = result.rows[0];
@@ -47,9 +47,9 @@ export const createProductsController = ({ db }) => ({
 
   async create(req, res) {
     let payload;
-    let file;
+    let files;
     try {
-      ({ payload, file } = await readProductPayload(req));
+      ({ payload, files } = await readProductPayload(req));
     } catch (error) {
       sendJson(res, 400, { ok: false, message: error.message });
       return;
@@ -61,21 +61,30 @@ export const createProductsController = ({ db }) => ({
     }
 
     const data = validation.data;
-    let image = data.image || '';
+    if (!files || files.length < 2 || files.length > 5) {
+      sendJson(res, 400, { ok: false, message: 'Please upload between 2 and 5 images for the product.' });
+      return;
+    }
+
+    let images = [];
     try {
-      if (file?.buffer?.length) {
-        image = saveUploadedImage(file);
-      } else if (image) {
-        image = saveBase64Image(image);
-      }
+      images = files.map(f => saveUploadedImage(f));
     } catch (error) {
       sendJson(res, 400, { ok: false, message: error.message });
       return;
     }
 
+    let colors = [];
+    if (data.colors) {
+      try { colors = JSON.parse(data.colors); } 
+      catch { colors = String(data.colors).split(',').map(c => c.trim()).filter(Boolean); }
+    }
+
+    const mainImage = images[0] || '';
+
     const insertResult = await db.query(
-      'INSERT INTO products (name, price, description, stock, image, bio) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-      [data.name, data.price, data.description, data.stock, image, data.bio || '']
+      'INSERT INTO products (name, price, description, stock, image, images, colors, bio) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+      [data.name, data.price, data.description, data.stock, mainImage, images, colors, data.bio || '']
     );
 
     const productId = insertResult.rows[0]?.id;
@@ -87,7 +96,9 @@ export const createProductsController = ({ db }) => ({
         price: data.price,
         description: data.description,
         stock: data.stock,
-        image,
+        image: mainImage,
+        images,
+        colors,
         bio: data.bio || ''
       }
     });
@@ -101,7 +112,7 @@ export const createProductsController = ({ db }) => ({
     }
 
     const currentResult = await db.query(
-      'SELECT id, name, price, description, stock, image, bio FROM products WHERE id = $1',
+      'SELECT id, name, price, description, stock, image, images, colors, bio FROM products WHERE id = $1',
       [id]
     );
     const current = currentResult.rows[0];
@@ -111,9 +122,9 @@ export const createProductsController = ({ db }) => ({
     }
 
     let payload;
-    let file;
+    let files;
     try {
-      ({ payload, file } = await readProductPayload(req));
+      ({ payload, files } = await readProductPayload(req));
     } catch (error) {
       sendJson(res, 400, { ok: false, message: error.message });
       return;
@@ -125,24 +136,32 @@ export const createProductsController = ({ db }) => ({
     }
 
     const data = validation.data;
-    let image = data.image || '';
+    let images = current.images || (current.image ? [current.image] : []);
 
-    try {
-      if (file?.buffer?.length) {
-        image = saveUploadedImage(file);
-      } else if (image) {
-        image = saveBase64Image(image);
-      } else {
-        image = current.image;
+    if (files && files.length > 0) {
+      if (files.length < 2 || files.length > 5) {
+        sendJson(res, 400, { ok: false, message: 'Please upload between 2 and 5 images for the product.' });
+        return;
       }
-    } catch (error) {
-      sendJson(res, 400, { ok: false, message: error.message });
-      return;
+      try {
+        images = files.map(f => saveUploadedImage(f));
+      } catch (error) {
+        sendJson(res, 400, { ok: false, message: error.message });
+        return;
+      }
     }
 
+    let colors = current.colors || [];
+    if (data.colors !== undefined) {
+      try { colors = JSON.parse(data.colors); } 
+      catch { colors = String(data.colors).split(',').map(c => c.trim()).filter(Boolean); }
+    }
+
+    const mainImage = images.length > 0 ? images[0] : (current.image || '');
+
     await db.query(
-      'UPDATE products SET name = $1, price = $2, description = $3, stock = $4, image = $5, bio = $6 WHERE id = $7',
-      [data.name, data.price, data.description, data.stock, image, data.bio || '', id]
+      'UPDATE products SET name = $1, price = $2, description = $3, stock = $4, image = $5, images = $6, colors = $7, bio = $8 WHERE id = $9',
+      [data.name, data.price, data.description, data.stock, mainImage, images, colors, data.bio || '', id]
     );
 
     sendJson(res, 200, { ok: true, message: 'Product updated successfully.' });

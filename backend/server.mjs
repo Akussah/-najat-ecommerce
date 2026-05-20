@@ -1,6 +1,8 @@
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import fs from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
 import Stripe from 'stripe';
 import db, { initDb } from './db.mjs';
 import { config } from './config.mjs';
@@ -48,6 +50,26 @@ const handler = async (req, res) => {
     if (req.method === 'OPTIONS') {
       sendJson(res, 200, { ok: true });
       return;
+    }
+
+    // Serve files from the uploads directory
+    if (req.url.startsWith('/uploads/')) {
+      try {
+        const urlPath = req.url.split('?')[0];
+        // Use uploadsDir from config (e.g., a Render Persistent Disk) or fallback to the local directory
+        const baseDir = config.uploadsDir || __dirname; 
+        const filePath = path.join(baseDir, urlPath); 
+        const stat = await fs.stat(filePath);
+        if (stat.isFile()) {
+          const ext = path.extname(filePath).toLowerCase();
+          const mimeTypes = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' };
+          res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+          createReadStream(filePath).pipe(res);
+          return;
+        }
+      } catch (err) {
+        // Fall through to other routes if file is not found
+      }
     }
 
     const handled = await router(req, res);

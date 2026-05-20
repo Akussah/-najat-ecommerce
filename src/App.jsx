@@ -3,21 +3,20 @@ import { useEffect, useState } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
-import About from './pages/About';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Collections from './pages/Collections';
 import Commission from './pages/Commission';
 import Consult from './pages/Consult';
 import Contact from './pages/Contact';
-import Heritage from './pages/Heritage';
 import Shop from './pages/Shop';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import AdminAddProduct from './pages/AdminAddProduct';
 import AdminEditProduct from './pages/AdminEditProduct';
 import AdminOrders from './pages/AdminOrders';
-import AdminDashboard from './pages/AdminDashboard';
+import AdminDashboard from './pages/AdminDashboard'; // Keep this import
+import './components/styles.css'; /* Import component-specific styles */
 import { apiFetch, getToken, setToken } from './lib/api';
 import './App.css';
 
@@ -79,7 +78,7 @@ function App() {
         <Navbar currentUser={currentUser} onSignOut={signOut} />
         <Routes>
           <Route path="/" element={<Home currentUser={currentUser} />} />
-          <Route path="/about" element={<About />} />
+          <Route path="/about" element={<Navigate to="/" replace />} />
           <Route path="/cart" element={<Cart />} />
           <Route
             path="/checkout"
@@ -94,7 +93,7 @@ function App() {
           <Route path="/commission" element={<Commission />} />
           <Route path="/consult" element={<Consult />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/heritage" element={<Heritage />} />
+          <Route path="/heritage" element={<Navigate to="/" replace />} />
           <Route path="/shop" element={<Shop currentUser={currentUser} />} />
           <Route path="/admin" element={<AdminDashboard currentUser={currentUser} />} />
           <Route path="/admin/products/new" element={<AdminAddProduct currentUser={currentUser} />} />

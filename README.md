@@ -3,25 +3,29 @@
 ## Stack
 - Frontend: React + Vite
 - Backend: Node.js HTTP API (`backend/server.mjs`)
-- Firebase: Auth + Firestore + Storage
+- Database: PostgreSQL
 
 ## Run locally
 1. Install deps:
 ```bash
 npm install
 ```
-2. Create `.env` with Firebase config:
+2. Create `.env` with database and payment config:
 ```bash
-VITE_FIREBASE_API_KEY=...
-VITE_FIREBASE_AUTH_DOMAIN=...
-VITE_FIREBASE_PROJECT_ID=...
-VITE_FIREBASE_APP_ID=...
-VITE_FIREBASE_STORAGE_BUCKET=...
-VITE_FIREBASE_MESSAGING_SENDER_ID=...
+DATABASE_URL=postgres://user:password@localhost:5432/yourdb
+ADMIN_EMAIL=admin@admin.com
+ADMIN_PASSWORD=Admin1234
+STRIPE_SECRET_KEY=sk_test_...
 PAYSTACK_SECRET_KEY=sk_test_...
 PAYSTACK_CURRENCY=USD
+RESEND_API_KEY=...
+SMTP_HOST=...
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASS=...
+EMAIL_FROM=...
 ```
-3. Start backend API (required for Paystack payment session):
+3. Start backend API:
 ```bash
 npm run api
 ```
@@ -32,28 +36,20 @@ npm run dev
 
 Frontend runs on `http://localhost:5173` and backend on `http://localhost:4001`.
 
-## Firebase usage
-- Authentication: Sign up / Sign in / Sign out
-- Firestore collections:
-  - `users`
-  - `orders`
-  - `consultRequests`
-  - `products`
-- Storage:
-  - `products/*` image files for product cards
-- Payments:
-  - Paystack card checkout session (`/api/payments/create-paystack-session`)
-  - Paystack payment verification (`/api/payments/paystack/verify`)
+## Backend database usage
+- PostgreSQL is the primary data store.
+- `users`, `products`, `orders`, `consult_requests`, and `sessions` are managed by the backend.
+- Product images can be seeded from local files and served from the app.
+- Payments and order verification still run through the backend payment API routes.
 
 ## Bulk upload products + images
-Use this when you want Firebase to handle the goods area and pictures.
+Use this when you want the backend database to seed products and local image assets.
 
-1. Download a Firebase service account key JSON from Firebase Console.
-2. Put your images in `data/product-images/`.
-3. Edit `data/products.seed.json`.
-4. Run:
+1. Put your images in `data/product-images/`.
+2. Edit `data/products.seed.json`.
+3. Run:
 ```bash
-npm run seed:firebase:products -- --serviceAccount=./serviceAccountKey.json --bucket=YOUR_BUCKET_NAME
+npm run seed:products -- --data=./data/products.seed.json --images=./data/product-images
 ```
 
 Optional flags:
@@ -61,23 +57,23 @@ Optional flags:
 - `--images=path/to/image-folder`
 
 `data/products.seed.json` supports:
-- `id` (optional Firestore doc id)
 - `name` (required)
 - `description`
 - `price` (required)
 - `stock`
 - `image` (fallback style key)
 - `imageFile` (filename inside `data/product-images`)
-- `imagePath` (optional destination path in Storage)
-- `imageUrl` (optional direct URL instead of upload)
+- `bio`
+- `images` (optional array of additional image paths)
+- `colors` (optional array or comma-separated string)
 
 ## Features implemented
 - Guest browsing and add-to-cart
 - Checkout requires sign-in/sign-up
 - Redirect back to checkout after auth
-- Firebase Authentication
-- Firestore order submission
+- Email/password authentication via backend sessions
+- Orders stored in PostgreSQL
 - Live Paystack card payment flow with post-payment shipping step
-- Firestore consultation request submission
-- Product loading from Firestore + Storage image support
+- Consultation request submission stored in PostgreSQL
+- Product loading from PostgreSQL with local image support
 - Polished responsive UI theme

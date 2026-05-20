@@ -50,6 +50,22 @@
                          "description":  "Bright mixed beads with reinforced hand strap.",
                          "stock":  "In stock",
                          "image":  "color"
+                     },
+                     {
+                         "id":  7,
+                         "name":  "African Bead Necklace",
+                         "price":  45,
+                         "description":  "A layered artisan necklace made from hand-strung glass and seed beads.",
+                         "stock":  "In stock",
+                         "image":  "beads"
+                     },
+                     {
+                         "id":  8,
+                         "name":  "Woven Bead Slippers",
+                         "price":  60,
+                         "description":  "Comfortable slip-on slippers detailed with subtle bead embroidery.",
+                         "stock":  "In stock",
+                         "image":  "slippers"
                      }
                  ],
     "orders":  [

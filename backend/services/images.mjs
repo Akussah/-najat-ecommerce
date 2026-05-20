@@ -2,10 +2,12 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
+import { config } from '../config.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const publicDir = path.join(__dirname, '..', '..', 'public');
+const baseDir = config.uploadsDir || path.join(__dirname, '..');
+const targetDir = path.join(baseDir, 'uploads');
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MIME_TO_EXT = new Map([
@@ -24,9 +26,9 @@ const ensureImageSize = (buffer) => {
 const writeImage = (buffer, ext) => {
   ensureImageSize(buffer);
   const filename = `product-${Date.now()}-${randomBytes(4).toString('hex')}.${ext}`;
-  mkdirSync(publicDir, { recursive: true });
-  writeFileSync(path.join(publicDir, filename), buffer);
-  return `/${filename}`;
+  mkdirSync(targetDir, { recursive: true });
+  writeFileSync(path.join(targetDir, filename), buffer);
+  return `/uploads/${filename}`;
 };
 
 export const saveBase64Image = (base64String) => {

@@ -36,11 +36,11 @@ const StripeCheckoutForm = ({ total, onPaymentSuccess }) => {
   };
 
   return (
-    <form className="checkout-form" onSubmit={handleSubmit}>
+    <form className="checkout-stripe-form" onSubmit={handleSubmit}>
       <PaymentElement />
       {error && <p className="error-msg">{error}</p>}
       <button className="btn btn-primary" type="submit" disabled={isProcessing || !stripe}>
-        {isProcessing ? 'Processing...' : `Pay $${total}`}
+        {isProcessing ? 'Processing...' : `Finalize order - $${total}`}
       </button>
     </form>
   );
@@ -56,12 +56,14 @@ const Checkout = ({ currentUser, isAuthLoading }) => {
     city: '',
     stateRegion: '',
     zipCode: '',
-    country: '',
+    country: 'United States',
     shippingProvider: 'FedEx',
     shippingScope: 'state-to-state',
     preferredChannel: ''
   });
-  const [paymentGateway, setPaymentGateway] = useState('stripe');
+  const [emailOffers, setEmailOffers] = useState(false);
+  const [saveInfo, setSaveInfo] = useState(false);
+  const [billingSame, setBillingSame] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
   const [clientSecret, setClientSecret] = useState('');
@@ -77,17 +79,6 @@ const Checkout = ({ currentUser, isAuthLoading }) => {
     }),
     [formData, currentUser]
   );
-
-  useEffect(() => {
-    if (paymentGateway !== 'stripe' && clientSecret) {
-      setClientSecret('');
-    }
-  }, [paymentGateway, clientSecret]);
-
-  const handleGatewayChange = (event) => {
-    setPaymentGateway(event.target.value);
-    setError('');
-  };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -151,45 +142,19 @@ const Checkout = ({ currentUser, isAuthLoading }) => {
     const fullAddress = getFullAddress();
 
     try {
-      savePendingOrder(fullAddress, paymentGateway);
+      savePendingOrder(fullAddress, 'stripe');
 
-      if (paymentGateway === 'stripe') {
-        const data = await apiFetch('/api/payments/create-payment-intent', {
-          method: 'POST',
-          body: {
-            items: cartItems,
-            fullName: checkoutDetails.fullName,
-            email: checkoutDetails.email,
-            address: fullAddress
-          }
-        });
-        setClientSecret(data.clientSecret);
-        setIsProcessing(false);
-        return;
-      }
-
-      const endpoint = paymentGateway === 'paystack'
-        ? '/api/payments/create-paystack-session'
-        : '/api/payments/create-flutterwave-session';
-
-      const payload = {
-        items: cartItems,
-        fullName: checkoutDetails.fullName,
-        email: checkoutDetails.email,
-        address: fullAddress,
-        origin: window.location.origin
-      };
-
-      if (paymentGateway === 'flutterwave' && checkoutDetails.preferredChannel) {
-        payload.preferredChannel = checkoutDetails.preferredChannel;
-      }
-
-      const data = await apiFetch(endpoint, {
+      const data = await apiFetch('/api/payments/create-payment-intent', {
         method: 'POST',
-        body: payload
+        body: {
+          items: cartItems,
+          fullName: checkoutDetails.fullName,
+          email: checkoutDetails.email,
+          address: fullAddress
+        }
       });
-
-      window.location.href = data.url;
+      setClientSecret(data.clientSecret);
+      setIsProcessing(false);
     } catch (err) {
       setError(err.message || 'Unable to start payment.');
       setIsProcessing(false);
@@ -331,126 +296,234 @@ const Checkout = ({ currentUser, isAuthLoading }) => {
   }
 
   return (
-    <main className="page">
-      <section className="section">
-        <div className="container checkout-grid">
-          <div>
-            <h1 className="section-title">Payment</h1>
-            <p className="section-subtitle">Enter your details, then complete payment securely via Stripe, Paystack, or Flutterwave.</p>
+    <main className="checkout-page">
+      <section className="checkout-shell">
+        <div className="checkout-layout">
+          <div className="checkout-main-card">
+            <div className="checkout-brand-row">
+              <div>
+                <p className="eyebrow">Secure Checkout</p>
+                <h1>Complete your order</h1>
+              </div>
+              <Link to="/cart">Return to cart</Link>
+            </div>
 
             {isPaid ? (
-              <div className="success-box">
+              <div className="checkout-success-panel">
                 <h3>Payment successful</h3>
                 <p>Your order has been placed.</p>
                 <Link to="/shop" className="btn btn-primary">Back to Shop</Link>
               </div>
-            ) : clientSecret && paymentGateway === 'stripe' ? (
-              <Elements stripe={stripePromise} options={{ clientSecret }}>
-                <StripeCheckoutForm total={total} onPaymentSuccess={handlePaymentSuccess} />
-              </Elements>
             ) : (
-              <form className="checkout-form" onSubmit={handleSubmit}>
-                <label>
-                  Payment Method
-                  <select name="paymentGateway" value={paymentGateway} onChange={handleGatewayChange}>
-                    <option value="stripe">Stripe (Card)</option>
-                    <option value="paystack">Paystack</option>
-                    <option value="flutterwave">Flutterwave</option>
-                  </select>
-                </label>
-
-                {paymentGateway === 'flutterwave' && (
-                  <label>
-                    Preferred Channel (optional)
-                    <select name="preferredChannel" value={checkoutDetails.preferredChannel} onChange={handleChange}>
-                      <option value="">Auto select</option>
-                      <option value="card">Card</option>
-                      <option value="banktransfer">Bank transfer</option>
-                      <option value="ussd">USSD</option>
-                      <option value="mobilemoney">Mobile money</option>
-                    </select>
-                  </label>
-                )}
-
-                <label>
-                  Full Name
-                  <input name="fullName" value={checkoutDetails.fullName} onChange={handleChange} />
-                </label>
-                <label>
-                  Email
-                  <input name="email" type="email" value={checkoutDetails.email} onChange={handleChange} />
-                </label>
-                <label>
-                  Street Address
-                  <input name="address" value={checkoutDetails.address} onChange={handleChange} placeholder="123 Main St, Apt 4" />
-                </label>
-
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <label style={{ flex: 1 }}>
-                    City
-                    <input name="city" value={checkoutDetails.city} onChange={handleChange} />
-                  </label>
-                  <label style={{ flex: 1 }}>
-                    State / Region
-                    <input name="stateRegion" value={checkoutDetails.stateRegion} onChange={handleChange} />
-                  </label>
+              <>
+                <div className="checkout-express">
+                  <h2>Express checkout</h2>
+                  <button type="button" className="checkout-express-button" disabled>
+                    <span>Stripe</span>
+                    <small>Express options coming soon</small>
+                  </button>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <label style={{ flex: 1 }}>
-                    Country
-                    <input name="country" value={checkoutDetails.country} onChange={handleChange} />
-                  </label>
-                  <label style={{ flex: 1 }}>
-                    Zip / Postal Code
-                    <input name="zipCode" value={checkoutDetails.zipCode} onChange={handleChange} />
-                  </label>
-                </div>
+                <div className="checkout-divider"><span>OR</span></div>
 
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <label style={{ flex: 1 }}>
-                    Shipping Provider
-                    <select name="shippingProvider" value={checkoutDetails.shippingProvider} onChange={handleChange} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}>
-                      <option value="FedEx">FedEx</option>
-                      <option value="DHL">DHL</option>
-                      <option value="Amazon Logistics">Amazon Logistics</option>
-                      <option value="UPS">UPS</option>
-                      <option value="Local Courier">Local Courier</option>
-                    </select>
-                  </label>
-                  <label style={{ flex: 1 }}>
-                    Delivery Scope
-                    <select name="shippingScope" value={checkoutDetails.shippingScope} onChange={handleChange} style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}>
-                      <option value="state-to-state">State to State</option>
-                      <option value="local">Within Vicinity (Local)</option>
-                      <option value="international">International</option>
-                    </select>
-                  </label>
-                </div>
+                <form className="shopify-checkout-form" onSubmit={handleSubmit}>
+                  <section className="checkout-step">
+                    <div className="checkout-step-head">
+                      <h2>Contact</h2>
+                      {!currentUser && <Link to="/signin">Sign in</Link>}
+                    </div>
+                    <label className="checkout-field checkout-field-full">
+                      <span>Email or mobile phone number</span>
+                      <input
+                        name="email"
+                        type="email"
+                        value={checkoutDetails.email}
+                        onChange={handleChange}
+                        autoComplete="email"
+                      />
+                    </label>
+                    <label className="checkout-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={emailOffers}
+                        onChange={(event) => setEmailOffers(event.target.checked)}
+                      />
+                      <span>Email me with news and offers</span>
+                    </label>
+                  </section>
 
-                {paymentGateway !== 'stripe' && (
-                  <p className="muted-text">You will be redirected to {paymentGateway === 'paystack' ? 'Paystack' : 'Flutterwave'} to complete payment.</p>
-                )}
+                  <section className="checkout-step">
+                    <h2>Delivery</h2>
+                    <label className="checkout-field checkout-field-full">
+                      <span>Country/Region</span>
+                      <select name="country" value={checkoutDetails.country} onChange={handleChange}>
+                        <option value="United States">United States</option>
+                        <option value="Ghana">Ghana</option>
+                        <option value="Canada">Canada</option>
+                        <option value="United Kingdom">United Kingdom</option>
+                        <option value="Nigeria">Nigeria</option>
+                      </select>
+                    </label>
 
-                {verifyMessage && <p className="muted-text">{verifyMessage}</p>}
-                {error && <p className="error-msg">{error}</p>}
+                    <div className="checkout-two-grid">
+                      <label className="checkout-field">
+                        <span>First name (optional)</span>
+                        <input
+                          name="firstName"
+                          value={checkoutDetails.firstName || ''}
+                          onChange={handleChange}
+                          autoComplete="given-name"
+                        />
+                      </label>
+                      <label className="checkout-field">
+                        <span>Last name</span>
+                        <input
+                          name="fullName"
+                          value={checkoutDetails.fullName}
+                          onChange={handleChange}
+                          autoComplete="family-name"
+                        />
+                      </label>
+                    </div>
 
-                <button className="btn btn-primary" type="submit" disabled={isProcessing}>
-                  {isProcessing ? 'Processing...' : 'Continue to Payment'}
-                </button>
-              </form>
+                    <label className="checkout-field checkout-field-full">
+                      <span>Address</span>
+                      <input
+                        name="address"
+                        value={checkoutDetails.address}
+                        onChange={handleChange}
+                        placeholder="Street address"
+                        autoComplete="street-address"
+                      />
+                    </label>
+
+                    <label className="checkout-field checkout-field-full">
+                      <span>Apartment, suite, etc. (optional)</span>
+                      <input name="apartment" value={checkoutDetails.apartment || ''} onChange={handleChange} />
+                    </label>
+
+                    <div className="checkout-three-grid">
+                      <label className="checkout-field">
+                        <span>City</span>
+                        <input name="city" value={checkoutDetails.city} onChange={handleChange} autoComplete="address-level2" />
+                      </label>
+                      <label className="checkout-field">
+                        <span>State</span>
+                        <input name="stateRegion" value={checkoutDetails.stateRegion} onChange={handleChange} autoComplete="address-level1" />
+                      </label>
+                      <label className="checkout-field">
+                        <span>ZIP code</span>
+                        <input name="zipCode" value={checkoutDetails.zipCode} onChange={handleChange} autoComplete="postal-code" />
+                      </label>
+                    </div>
+
+                    <label className="checkout-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={saveInfo}
+                        onChange={(event) => setSaveInfo(event.target.checked)}
+                      />
+                      <span>Save this information for next time</span>
+                    </label>
+                  </section>
+
+                  <section className="checkout-step">
+                    <h2>Shipping method</h2>
+                    <div className="checkout-muted-box">
+                      Enter your shipping address to view available shipping methods.
+                    </div>
+                    <div className="checkout-two-grid">
+                      <label className="checkout-field">
+                        <span>Shipping provider</span>
+                        <select name="shippingProvider" value={checkoutDetails.shippingProvider} onChange={handleChange}>
+                          <option value="FedEx">FedEx</option>
+                          <option value="DHL">DHL</option>
+                          <option value="Amazon Logistics">Amazon Logistics</option>
+                          <option value="UPS">UPS</option>
+                          <option value="Local Courier">Local Courier</option>
+                        </select>
+                      </label>
+                      <label className="checkout-field">
+                        <span>Delivery scope</span>
+                        <select name="shippingScope" value={checkoutDetails.shippingScope} onChange={handleChange}>
+                          <option value="state-to-state">State to State</option>
+                          <option value="local">Within Vicinity (Local)</option>
+                          <option value="international">International</option>
+                        </select>
+                      </label>
+                    </div>
+                  </section>
+
+                  <section className="checkout-step">
+                    <h2>Payment</h2>
+                    <p className="checkout-step-note">All transactions are secure and encrypted.</p>
+                    <div className="checkout-payment-option">
+                      <div>
+                        <span className="checkout-radio-dot" />
+                        <strong>Stripe</strong>
+                      </div>
+                      <small>Card, wallet, and available Stripe payment methods</small>
+                    </div>
+
+                    {clientSecret ? (
+                      <div className="checkout-stripe-box">
+                        <Elements stripe={stripePromise} options={{ clientSecret }}>
+                          <StripeCheckoutForm total={total} onPaymentSuccess={handlePaymentSuccess} />
+                        </Elements>
+                      </div>
+                    ) : (
+                      <p className="checkout-payment-help">
+                        Fill in your contact and delivery details, then finalize the order to open the secure Stripe payment form.
+                      </p>
+                    )}
+                  </section>
+
+                  <section className="checkout-step">
+                    <h2>Billing address</h2>
+                    <label className="checkout-radio-card">
+                      <input
+                        type="radio"
+                        name="billingAddress"
+                        checked={billingSame}
+                        onChange={() => setBillingSame(true)}
+                      />
+                      <span>Same as shipping address</span>
+                    </label>
+                    <label className="checkout-radio-card">
+                      <input
+                        type="radio"
+                        name="billingAddress"
+                        checked={!billingSame}
+                        onChange={() => setBillingSame(false)}
+                      />
+                      <span>Use a different billing address</span>
+                    </label>
+                  </section>
+
+                  {verifyMessage && <p className="checkout-message">{verifyMessage}</p>}
+                  {error && <p className="checkout-error">{error}</p>}
+
+                  {!clientSecret && (
+                    <button className="btn btn-primary checkout-final-button" type="submit" disabled={isProcessing}>
+                      {isProcessing ? 'Preparing secure payment...' : 'Finalize order'}
+                    </button>
+                  )}
+                </form>
+              </>
             )}
           </div>
 
-          <aside className="summary-box">
+          <aside className="checkout-summary-card">
             <h3>Order Summary</h3>
-            {cartItems.map((item) => (
-              <div key={item.id} className="summary-row">
-                <span>{item.name} x{item.quantity}</span>
-                <strong>${item.price * item.quantity}</strong>
-              </div>
-            ))}
-            <div className="summary-total">
+            <div className="checkout-summary-items">
+              {cartItems.map((item) => (
+                <div key={item.id} className="checkout-summary-item">
+                  <span>{item.name} x{item.quantity}</span>
+                  <strong>${(item.price * item.quantity).toFixed(2)}</strong>
+                </div>
+              ))}
+            </div>
+            <div className="checkout-summary-total">
               <span>Total</span>
               <strong>${total}</strong>
             </div>

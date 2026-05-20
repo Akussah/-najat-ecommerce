@@ -1,13 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { apiFetch } from '../lib/api';
+import { apiFetch, resolveApiAssetUrl } from '../lib/api';
 import { useCart } from '../context/CartContext';
 
 const resolveImageSrc = (image) => {
   if (!image) return '';
-  if (image.startsWith('http') || image.startsWith('/') || image.startsWith('data:image/')) return image;
+  if (image.startsWith('http') || image.startsWith('data:image/')) return image;
+  if (image.startsWith('/')) return resolveApiAssetUrl(image);
   if (image.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return `/${image}`;
   return '';
+};
+
+const getProductImages = (product) => {
+  const rawImages = Array.isArray(product.images) && product.images.length > 0
+    ? product.images
+    : [product.image];
+
+  return rawImages
+    .map((image) => resolveImageSrc(String(image || '')))
+    .filter(Boolean);
 };
 
 const ProductList = ({ currentUser, limit }) => {
@@ -55,88 +66,66 @@ const ProductList = ({ currentUser, limit }) => {
     <>
       <div className="products-grid catalog-grid">
         {displayedProducts.map((product) => {
-          const imageSrc = resolveImageSrc(product.image || '');
+          const imageSources = getProductImages(product);
+          const hasImages = imageSources.length > 0;
           return (
           <article
             key={product.id}
-            className="product-card"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
-              backgroundColor: '#fff',
-              paddingBottom: '1.5rem',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-            }}
+            className="product-card animate-fade-up"
           >
-            <div
-              className="product-image"
-              style={{ width: '100%', height: '200px', marginBottom: '1rem', backgroundColor: '#fcfcfc', cursor: imageSrc ? 'zoom-in' : 'default' }}
-              onClick={() => {
-                if (imageSrc) setLightbox({ src: imageSrc, name: product.name });
-              }}
-            >
-              {imageSrc ? (
-                <img
-                  src={imageSrc}
-                  alt={product.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-                />
+            <div className={`product-image ${hasImages ? 'product-image-gallery' : ''}`}>
+              {hasImages ? (
+                <>
+                  <div className="product-gallery-track" aria-label={`${product.name} image gallery`}>
+                    {imageSources.map((src, index) => (
+                      <button
+                        key={`${product.id}-${src}-${index}`}
+                        type="button"
+                        className="product-gallery-slide"
+                        onClick={() => setLightbox({ src, name: `${product.name} ${index + 1} of ${imageSources.length}` })}
+                        aria-label={`Open ${product.name} image ${index + 1}`}
+                      >
+                        <img
+                          src={src}
+                          alt={`${product.name} view ${index + 1}`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  {imageSources.length > 1 && (
+                    <div className="product-gallery-dots" aria-hidden="true">
+                      {imageSources.map((src, index) => (
+                        <span key={`${src}-dot-${index}`} />
+                      ))}
+                    </div>
+                  )}
+                </>
               ) : (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '6rem 0',
-                    color: '#aaa',
-                    fontStyle: 'italic'
-                  }}
-                >
+                <div className="product-image-placeholder">
                   {String(product.image || 'Bag')}
                 </div>
               )}
             </div>
-            <div style={{ padding: '0 1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <p
-                className="product-kicker"
-                style={{ fontSize: '0.75rem', letterSpacing: '0.08em', color: '#999', marginBottom: '0.25rem', textTransform: 'uppercase' }}
-              >
-                ALHAMD ASHINO
-              </p>
-              <h3 className="product-name" style={{ fontSize: '1.35rem', marginBottom: '0.5rem', fontWeight: '600', color: '#222' }}>{product.name}</h3>
+            <div className="product-details">
+              <p className="product-kicker">ALHAMD ASHINO</p>
+              <h3 className="product-name">{product.name}</h3>
               {product.bio && (
-                <p className="product-bio" style={{ fontSize: '0.95rem', color: '#666', lineHeight: '1.6', fontStyle: 'italic', marginBottom: '1.25rem', flex: 1 }}>
+                <p className="product-bio">
                   "{product.bio}"
                 </p>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                <p
-                  className="stock-tag"
-                  style={{
-                    fontSize: '0.85rem',
-                    color: product.stock === 'In stock' ? '#2b8a3e' : '#e6a23c',
-                    fontWeight: '600',
-                    margin: 0,
-                    padding: '4px 8px',
-                    backgroundColor: product.stock === 'In stock' ? '#eefbf1' : '#fdf6ec',
-                    borderRadius: '4px'
-                  }}
-                >
+              <div className="flex items-center justify-between gap-4 mt-auto">
+                <p className={`stock-tag ${product.stock === 'In stock' ? 'in-stock' : 'low-stock'}`}>
                   {product.stock}
                 </p>
-                <strong className="current-price" style={{ fontSize: '1.25rem', color: '#111' }}>${Number(product.price).toFixed(2)}</strong>
+                <strong className="current-price">${Number(product.price).toFixed(2)}</strong>
               </div>
             </div>
-            <div style={{ padding: '1.25rem 1.5rem 0', display: 'flex', gap: '0.5rem' }}>
+            <div className="product-card-actions">
               <button
                 type="button"
-                className="btn btn-primary"
-                style={{ flex: 1, borderRadius: '8px', padding: '0.85rem', fontWeight: '600', fontSize: '1rem' }}
+                className="btn btn-primary w-full"
                 onClick={() => addToCart(product)}
               >
                 Add to Cart
@@ -145,16 +134,14 @@ const ProductList = ({ currentUser, limit }) => {
                 <>
                   <Link
                     to={`/admin/products/${product.id}/edit`}
-                    className="btn btn-secondary"
-                    style={{ borderRadius: '8px', padding: '0.85rem', fontWeight: '600', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    className="btn btn-secondary product-admin-btn"
                   >
                     Edit
                   </Link>
                   <button
                     type="button"
                     onClick={() => handleDelete(product.id)}
-                    className="btn"
-                    style={{ backgroundColor: '#ff4d4f', color: '#fff', borderRadius: '8px', padding: '0.85rem', fontWeight: '600', fontSize: '1rem', border: 'none', cursor: 'pointer' }}
+                    className="btn btn-delete product-admin-btn"
                   >
                     Delete
                   </button>
@@ -170,34 +157,15 @@ const ProductList = ({ currentUser, limit }) => {
         <div
           role="dialog"
           aria-modal="true"
-          onClick={() => setLightbox(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(10, 12, 16, 0.72)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2rem',
-            zIndex: 60
-          }}
+          onClick={() => setLightbox(null)} /* Removed inline styles, now handled by class */
+          className="lightbox-overlay"
         >
           <div
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              background: '#fff',
-              borderRadius: '20px',
-              padding: '1.5rem',
-              maxWidth: '90vw',
-              maxHeight: '90vh',
-              boxShadow: '0 24px 60px rgba(0,0,0,0.35)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1rem'
-            }}
+            onClick={(event) => event.stopPropagation()} /* Removed inline styles, now handled by class */
+            className="lightbox-content"
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <strong style={{ fontSize: '1.1rem' }}>{lightbox.name}</strong>
+            <div className="lightbox-header">
+              <strong className="lightbox-title">{lightbox.name}</strong>
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -210,7 +178,7 @@ const ProductList = ({ currentUser, limit }) => {
             <img
               src={lightbox.src}
               alt={lightbox.name}
-              style={{ maxWidth: '86vw', maxHeight: '72vh', objectFit: 'contain', borderRadius: '16px' }}
+              className="lightbox-image" /* Removed inline styles, now handled by class */
             />
           </div>
         </div>

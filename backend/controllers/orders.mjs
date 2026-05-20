@@ -54,6 +54,7 @@ export const createOrdersController = ({ db, emailService, config }) => ({
         total: computedTotal,
         address: data.address,
         paymentMethod: data.paymentMethod,
+        status: 'pending',
         createdAt
       }
     });
@@ -89,6 +90,81 @@ export const createOrdersController = ({ db, emailService, config }) => ({
     const notifyEmail = String(config?.orderNotifyEmail || '').trim();
     if (notifyEmail) {
       emailService.sendEmail(notifyEmail, `New Order - ALHAMD ASHINO (#${orderId})`, companyEmailHtml);
+    }
+  },
+
+  async updateStatus(req, res) {
+    let body;
+    try {
+      body = await parseJsonBody(req);
+    } catch (error) {
+      sendJson(res, 400, { ok: false, message: error.message });
+      return;
+    }
+
+    const { orderId, status } = body;
+    if (!orderId || !status) {
+      sendJson(res, 400, { ok: false, message: 'orderId and status are required' });
+      return;
+    }
+
+    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      sendJson(res, 400, { ok: false, message: `Invalid status. Allowed: ${validStatuses.join(', ')}` });
+      return;
+    }
+
+    const updatedAt = new Date().toISOString();
+    const result = await db.query(
+      'UPDATE orders SET status = $1, updated_at = $2 WHERE id = $3 RETURNING id, user_email, user_id, items_json, total, address, created_at',
+      [status, updatedAt, orderId]
+    );
+
+    if (result.rows.length === 0) {
+      sendJson(res, 404, { ok: false, message: 'Order not found' });
+      return;
+    }
+
+    const order = result.rows[0];
+    sendJson(res, 200, {
+      ok: true,
+      order: {
+        id: orderId,
+        status,
+        updatedAt
+      }
+    });
+
+    // Send status update email to customer
+    const statusMessages = {
+      processing: 'Your order is being prepared for shipment.',
+      shipped: 'Your order has been shipped!',
+      delivered: 'Your order has been delivered. Thank you for shopping with ALHAMD ASHINO!',
+      cancelled: 'Your order has been cancelled.'
+    };
+
+    const statusEmailHtml = `
+      <h2>Order Status Update - ALHAMD ASHINO (#${orderId})</h2>
+      <p>Hi,</p>
+      <p><strong>Your order status: ${status.toUpperCase()}</strong></p>
+      <p>${statusMessages[status] || `Your order status has been updated to ${status}.`}</p>
+      ${status === 'shipped' ? `<p><strong>Shipping Address:</strong><br/> ${order.address}</p>` : ''}
+      <p>If you have any questions, please contact our support team.</p>
+      <hr />
+      <p><em>Order #${orderId} | Placed: ${order.created_at}</em></p>
+    `;
+
+    emailService.sendEmail(order.user_email, `Order Update - ALHAMD ASHINO (#${orderId})`, statusEmailHtml);
+
+    // Notify admin of status change
+    const notifyEmail = String(config?.orderNotifyEmail || '').trim();
+    if (notifyEmail) {
+      const adminNotifyHtml = `
+        <h2>Order Status Changed (#${orderId})</h2>
+        <p><strong>New Status:</strong> ${status.toUpperCase()}</p>
+        <p><strong>Updated At:</strong> ${updatedAt}</p>
+      `;
+      emailService.sendEmail(notifyEmail, `Order Status Update - ALHAMD ASHINO (#${orderId})`, adminNotifyHtml);
     }
   }
 });

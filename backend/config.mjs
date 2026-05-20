@@ -17,6 +17,7 @@ export const config = {
     from: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || ''
   },
   orderNotifyEmail: process.env.ORDER_NOTIFY_EMAIL || '',
+  uploadsDir: process.env.UPLOADS_DIR || '',
   rateLimits: {
     auth: { windowMs: 15 * 60 * 1000, max: 10 },
     checkout: { windowMs: 60 * 1000, max: 10 },

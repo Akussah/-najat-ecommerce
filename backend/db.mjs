@@ -2,7 +2,7 @@ import 'dotenv/config';
 import pg from 'pg';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, copyFileSync } from 'node:fs';
 import { hashPassword } from './lib/security.mjs';
 
 const { Pool } = pg;
@@ -10,6 +10,7 @@ const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.join(__dirname, '../public');
+const seedImagesDir = path.join(__dirname, '../data/product-images');
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -75,7 +76,11 @@ export const initDb = async () => {
   await seedProducts();
 
   try { await pool.query('ALTER TABLE products ADD COLUMN bio TEXT'); } catch (e) {}
+  try { await pool.query("ALTER TABLE products ADD COLUMN images TEXT[] DEFAULT '{}'"); } catch (e) {}
+  try { await pool.query("ALTER TABLE products ADD COLUMN colors TEXT[] DEFAULT '{}'"); } catch (e) {}
   try { await pool.query('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0'); } catch (e) {}
+  try { await pool.query("ALTER TABLE orders ADD COLUMN status TEXT DEFAULT 'pending'"); } catch (e) {}
+  try { await pool.query("ALTER TABLE orders ADD COLUMN updated_at TEXT"); } catch (e) {}
 };
 
 const seedAdmin = async () => {
@@ -134,8 +139,17 @@ const seedAdmin = async () => {
 
 const resolveSeedImagePath = (item) => {
   if (item.imageFile) {
-    const candidate = path.join(publicDir, item.imageFile);
-    if (existsSync(candidate)) {
+    const publicCandidate = path.join(publicDir, item.imageFile);
+    if (existsSync(publicCandidate)) {
+      return `/${item.imageFile}`;
+    }
+
+    const seedCandidate = path.join(seedImagesDir, item.imageFile);
+    if (existsSync(seedCandidate)) {
+      const destination = path.join(publicDir, item.imageFile);
+      if (!existsSync(destination)) {
+        copyFileSync(seedCandidate, destination);
+      }
       return `/${item.imageFile}`;
     }
   }
@@ -162,14 +176,31 @@ const seedProducts = async () => {
     try {
       await client.query('BEGIN');
       for (const item of products) {
+        const image = resolveSeedImagePath(item);
+        let images = [];
+        if (Array.isArray(item.images) && item.images.length > 0) {
+          images = item.images.map((img) => String(img || '')).filter(Boolean);
+        } else if (image) {
+          images = [image];
+        }
+
+        let colors = [];
+        if (Array.isArray(item.colors)) {
+          colors = item.colors.map((color) => String(color || '').trim()).filter(Boolean);
+        } else if (typeof item.colors === 'string') {
+          colors = item.colors.split(',').map((color) => color.trim()).filter(Boolean);
+        }
+
         await client.query(
-          'INSERT INTO products (name, price, description, stock, image, bio) VALUES ($1, $2, $3, $4, $5, $6)',
+          'INSERT INTO products (name, price, description, stock, image, images, colors, bio) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
           [
             item.name || '',
             Number(item.price || 0),
             item.description || '',
             item.stock || '',
-            resolveSeedImagePath(item),
+            image,
+            images,
+            colors,
             item.bio || ''
           ]
         );

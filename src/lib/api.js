@@ -1,4 +1,11 @@
-const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:4001' : 'https://najat-ecommerce.onrender.com');
+export const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:4001' : 'https://najat-ecommerce.onrender.com');
+
+export const resolveApiAssetUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http') || path.startsWith('data:image/')) return path;
+  if (path.startsWith('/uploads/')) return `${API_BASE}${path}`;
+  return path;
+};
 
 export const getToken = () => localStorage.getItem('bead_bag_token') || '';
 

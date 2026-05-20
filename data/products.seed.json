@@ -28,5 +28,25 @@
     "image": "bridal",
     "bio": "A perfect escort piece for modern brides and reflection of artisan craft.",
     "imageFile": "mini-bridal.jpg"
+  },
+  {
+    "id": "african-bead-necklace",
+    "name": "African Bead Necklace",
+    "description": "A layered artisan necklace made from hand-strung glass and seed beads.",
+    "price": 45,
+    "stock": "In stock",
+    "image": "beads",
+    "bio": "Richly textured beadwork for day-to-night styling.",
+    "imageFile": "african-bead-necklace.jpg"
+  },
+  {
+    "id": "woven-bead-slippers",
+    "name": "Woven Bead Slippers",
+    "description": "Comfortable slip-on slippers detailed with subtle bead embroidery.",
+    "price": 60,
+    "stock": "In stock",
+    "image": "slippers",
+    "bio": "Soft, hand-finished slippers that blend everyday ease with artisan detail.",
+    "imageFile": "woven-bead-slippers.jpg"
   }
 ]
