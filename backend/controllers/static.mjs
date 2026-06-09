@@ -16,7 +16,13 @@ const mimeTypes = {
 
 const streamFile = (res, filePath) => {
   const ext = path.extname(filePath).toLowerCase();
-  res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+  res.writeHead(200, {
+    'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true'
+  });
   createReadStream(filePath).pipe(res);
 };
 
