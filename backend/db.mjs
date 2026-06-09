@@ -73,14 +73,15 @@ export const initDb = async () => {
   `);
 
   await seedAdmin();
-  await seedProducts();
 
   try { await pool.query('ALTER TABLE products ADD COLUMN bio TEXT'); } catch (e) {}
-  try { await pool.query("ALTER TABLE products ADD COLUMN images TEXT[] DEFAULT '{}'"); } catch (e) {}
-  try { await pool.query("ALTER TABLE products ADD COLUMN colors TEXT[] DEFAULT '{}'"); } catch (e) {}
+  try { await pool.query("ALTER TABLE products ADD COLUMN images TEXT[] DEFAULT '{}'" ); } catch (e) {}
+  try { await pool.query("ALTER TABLE products ADD COLUMN colors TEXT[] DEFAULT '{}'" ); } catch (e) {}
   try { await pool.query('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0'); } catch (e) {}
   try { await pool.query("ALTER TABLE orders ADD COLUMN status TEXT DEFAULT 'pending'"); } catch (e) {}
   try { await pool.query("ALTER TABLE orders ADD COLUMN updated_at TEXT"); } catch (e) {}
+
+  await seedProducts();
 };
 
 const seedAdmin = async () => {
