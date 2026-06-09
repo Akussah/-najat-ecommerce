@@ -164,9 +164,6 @@ const resolveSeedImagePath = (item) => {
 
 const seedProducts = async () => {
   try {
-    const countRow = await pool.query('SELECT COUNT(*) AS count FROM products');
-    if (countRow.rows[0].count > 0) return;
-
     const seedPath = path.join(__dirname, '../data/products.seed.json');
     if (!existsSync(seedPath)) return;
 
@@ -192,19 +189,31 @@ const seedProducts = async () => {
           colors = item.colors.split(',').map((color) => color.trim()).filter(Boolean);
         }
 
-        await client.query(
-          'INSERT INTO products (name, price, description, stock, image, images, colors, bio) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-          [
-            item.name || '',
-            Number(item.price || 0),
-            item.description || '',
-            item.stock || '',
-            image,
-            images,
-            colors,
-            item.bio || ''
-          ]
-        );
+        const existingResult = await client.query('SELECT id, image, images FROM products WHERE name = $1', [item.name || '']);
+        if (existingResult.rows.length > 0) {
+          const current = existingResult.rows[0];
+          const hasImage = current.image && Array.isArray(current.images) && current.images.length > 0;
+          if (!hasImage) {
+            await client.query(
+              'UPDATE products SET image = $1, images = $2, colors = $3, bio = $4 WHERE id = $5',
+              [image, images, colors, item.bio || '', current.id]
+            );
+          }
+        } else {
+          await client.query(
+            'INSERT INTO products (name, price, description, stock, image, images, colors, bio) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+            [
+              item.name || '',
+              Number(item.price || 0),
+              item.description || '',
+              item.stock || '',
+              image,
+              images,
+              colors,
+              item.bio || ''
+            ]
+          );
+        }
       }
       await client.query('COMMIT');
     } catch (e) {

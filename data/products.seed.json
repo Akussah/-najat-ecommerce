@@ -5,9 +5,9 @@
     "description": "Hand-woven pearl beads with evening-ready shape.",
     "price": 95,
     "stock": "In stock",
-    "image": "pearl",
+    "image": "/Adehye Luxe (Royalty Statement Bag).jpeg",
     "bio": "A timeless design crafted for evening occasions with meticulous hand-beading.",
-    "imageFile": "classic-pearl.jpg"
+    "imageFile": "Adehye Luxe (Royalty Statement Bag).jpeg"
   },
   {
     "id": "gold-chain-bead-bag",
@@ -15,9 +15,9 @@
     "description": "Gold-tone chain and bead body with satin lining.",
     "price": 120,
     "stock": "In stock",
-    "image": "gold",
+    "image": "/Ahobrɛ Soft (Grace Circle Bag).jpeg",
     "bio": "A luxe evening bag where polished beads meet lasting structure.",
-    "imageFile": "gold-chain.jpg"
+    "imageFile": "Ahobrɛ Soft (Grace Circle Bag).jpeg"
   },
   {
     "id": "mini-bridal-bead-bag",
@@ -25,9 +25,9 @@
     "description": "Compact bridal style for events and ceremonies.",
     "price": 80,
     "stock": "Low stock",
-    "image": "bridal",
+    "image": "/Akoma Bloom (Love Blossom Bag).jpeg",
     "bio": "A perfect escort piece for modern brides and reflection of artisan craft.",
-    "imageFile": "mini-bridal.jpg"
+    "imageFile": "Akoma Bloom (Love Blossom Bag).jpeg"
   },
   {
     "id": "african-bead-necklace",
@@ -35,9 +35,9 @@
     "description": "A layered artisan necklace made from hand-strung glass and seed beads.",
     "price": 45,
     "stock": "In stock",
-    "image": "beads",
+    "image": "/Sankofa Flame (Heritage Circle Bag).jpeg",
     "bio": "Richly textured beadwork for day-to-night styling.",
-    "imageFile": "african-bead-necklace.jpg"
+    "imageFile": "Sankofa Flame (Heritage Circle Bag).jpeg"
   },
   {
     "id": "woven-bead-slippers",
@@ -45,8 +45,8 @@
     "description": "Comfortable slip-on slippers detailed with subtle bead embroidery.",
     "price": 60,
     "stock": "In stock",
-    "image": "slippers",
+    "image": "/Nhyira Red (Blessing Crossbody Bag).jpeg",
     "bio": "Soft, hand-finished slippers that blend everyday ease with artisan detail.",
-    "imageFile": "woven-bead-slippers.jpg"
+    "imageFile": "Nhyira Red (Blessing Crossbody Bag).jpeg"
   }
 ]
